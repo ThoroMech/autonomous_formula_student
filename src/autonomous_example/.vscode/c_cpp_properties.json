@@ -1,0 +1,25 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/alistair/fsds_workspace/install/cpp_pkg/include/**",
+        "/home/alistair/Formula-Student-Driverless-Simulator/ros2/install/fsds_ros2_bridge/include/**",
+        "/home/alistair/Formula-Student-Driverless-Simulator/ros2/install/fs_msgs/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/alistair/fsds_ws/src/autonomous_example/include/**",
+        "include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

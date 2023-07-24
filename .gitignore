@@ -1,0 +1,8 @@
+# Ignore build and binary directories in all packages
+/build/
+/install/
+/log/
+
+# Ignore specific files generated during the build
+*.ld
+*.log
