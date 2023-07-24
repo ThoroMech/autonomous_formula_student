@@ -7,6 +7,6 @@ Launch files for Autonomous Control (ros2 launch autonomous_example my_launch_fi
  - improved_perception.launch.py
 
 Ros2 node for graphing traffic cones:
- ros2 run graphing cone_graph
+ - ros2 run graphing cone_graph
 
  
