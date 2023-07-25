@@ -36,7 +36,7 @@ private:
     }
 
     // Remove points that are further away from the vehicle than (max_distance).
-    const float max_distance =10.0;
+    const float max_distance = 7.0;
     points.erase(std::remove_if(points.begin(), 
                   points.end(),
                   [max_distance](const auto& p){

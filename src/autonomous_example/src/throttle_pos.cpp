@@ -13,12 +13,18 @@ public:
       "/gss", 10, std::bind(&GssSubscriber::callback, this, std::placeholders::_1));
     publisher_ = this->create_publisher<std_msgs::msg::Float32>("throttle_pos", 10);
 
+    //Declare parameter for max speed, this can be changed within the launch files
+    this->declare_parameter<double>("max_speed", 4.0);
+    this->get_parameter("max_speed", max_speed_);
+
     RCLCPP_INFO(this->get_logger(), "Throttle Position Algorithm Initialised");
   }
 private:
+  double max_speed_;
+
   void callback(const geometry_msgs::msg::TwistWithCovarianceStamped::SharedPtr msg) 
   {
-    const int target_speed = 8.5;
+    const float target_speed = max_speed_;
     const float max_throttle = 1;
     
     double vx = msg->twist.twist.linear.x;

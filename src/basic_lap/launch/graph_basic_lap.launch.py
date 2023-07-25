@@ -11,26 +11,35 @@ def generate_launch_description():
     )
 
     cone_id_node = Node(
-        package='perception',
+        package='autonomous_example',
         executable='cone_id',
         name='cone_id'
-    )
-
-    steering_angle_node = Node(
-        package='autonomous_example',
-        executable='steering_angle',
-        name='steering_angle'
     )
 
     throttle_pos_node = Node(
         package='autonomous_example',
         executable='throttle_pos',
-        name='throttle_pos'
+        name='throttle_pos',
+        parameters=[{'max_speed': 6.5}]
     )
+
+    steering_angle_node = Node(
+        package='basic_lap',
+        executable='steering_angle',
+        name='steering_angle'
+    )
+
+    cone_graph_node = Node(
+        package='graphing',
+        executable='cone_graph',
+        name='cone_graph'
+    )
+    
 
     ld.add_action(car_controller_node)
     ld.add_action(cone_id_node)
     ld.add_action(steering_angle_node)
     ld.add_action(throttle_pos_node)
+    ld.add_action(cone_graph_node)
 
     return ld
