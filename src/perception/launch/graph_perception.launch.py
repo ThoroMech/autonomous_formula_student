@@ -14,7 +14,7 @@ def generate_launch_description():
         package='autonomous_example',
         executable='throttle_pos',
         name='throttle_pos',
-        parameters=[{'max_speed': 9.0}]
+        parameters=[{'max_speed': 8.0}]
     )
 
     steering_angle_node = Node(

@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "cone_graph = graphing.cone_graph:main"
+            "cone_graph = graphing.cone_graph:main",
+            "map_graph = graphing.map_graph:main"
         ],
     },
 )
