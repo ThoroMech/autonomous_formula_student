@@ -24,10 +24,16 @@ class MapPlotter(Node):
         for pose in msg.poses:
             x_values.append(pose.position.x)
             y_values.append(pose.position.y)
+
+        vehicle_orientation = msg.poses[0].orientation.z
+        # Convert orientation to angle in degrees
+        angle_deg = np.degrees(vehicle_orientation)
         
         plt.clf()
         plt.axis([-150,150,-20,180])
-        plt.scatter(x_values, y_values)
+        plt.scatter(x_values[1:], y_values[1:], c='blue')
+        # plt.scatter(x_values[0],y_values[0], c='red')
+        plt.quiver(x_values[0],y_values[0], 10 * np.cos(vehicle_orientation), 10 * np.sin(vehicle_orientation), color='red')
         plt.pause(0.05)        
 
 def main(args=None):

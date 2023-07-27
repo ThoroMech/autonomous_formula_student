@@ -43,53 +43,47 @@ private:
   void cones_callback(const geometry_msgs::msg::PoseArray msg)
   {
     bool ismatch;
+    //geometry_msgs::msg::PoseArray map;
     geometry_msgs::msg::PoseArray global_cone_location;
     geometry_msgs::msg::Pose traffic_cone;
+        if (map.poses.empty())
+    {
+        map.poses.push_back(vehicle_pose);
+    }
     map.poses[0] = vehicle_pose;
 
     //convert the perceived traffic cone to global coordinate. 
     for (const auto& cone : msg.poses) //for each of the percieved cones
     {
+      ismatch = false;
       traffic_cone = convert_to_global(cone.position.x, cone.position.y);
-      global_cone_location.poses.push_back(traffic_cone);
-    }
-
-    // //If the map is empty add all percieved cones
-    // if (map.poses.size()==0){
-    //   for (const auto& cone : global_cone_location.poses)
-    //   {
-    //     map.poses.push_back(cone);
-    //     RCLCPP_INFO(this->get_logger(), "%ld number of cones found", map.poses.size());
-    //   }
-    // }
-    //Otherwise check if any of the cones are new
-    //else {
-      for (const auto& cone : global_cone_location.poses) //for each of the percieved cones
+      for (const auto& stored_cones : map.poses) //Check all stored locations
       {
-        ismatch = false;
-        for (const auto& stored_cones : map.poses) //Check all stored locations
+        if (std::abs(traffic_cone.position.x - stored_cones.position.x)<1 && 
+        std::abs(traffic_cone.position.y - stored_cones.position.y)<1)
         {
-          if (std::abs(cone.position.x - stored_cones.position.x)<0.3 && 
-          std::abs(cone.position.y - stored_cones.position.y)<0.3)
-          {
-            ismatch = true;      
-          }
+          ismatch = true;
+          break;      
         }
-        if (ismatch == false){
-          // Add the cone location to the map.
-          map.poses.push_back(cone);
-          RCLCPP_INFO(this->get_logger(), "%ld number of cones found", map.poses.size());
-        }        
       }
-    //}
+      if (ismatch == false){
+        // Add the cone location to the map.
+        map.poses.push_back(traffic_cone);
+        // RCLCPP_INFO(this->get_logger(), "%ld number of cones found", map.poses.size());
+      }        
+    }
     map_publisher->publish(map);
    }
 
   geometry_msgs::msg::Pose convert_to_global(double cone_x, double cone_y)
   {
     geometry_msgs::msg::Pose global_cone;
-    global_cone.position.x = vehicle_pose.position.x + cone_x*cos(vehicle_pose.orientation.z) + cone_y*sin(vehicle_pose.orientation.z);
-    global_cone.position.y = vehicle_pose.position.y + cone_x*sin(vehicle_pose.orientation.z) + cone_y*cos(vehicle_pose.orientation.z);
+    global_cone.position.x = vehicle_pose.position.x + cone_x*cos(vehicle_pose.orientation.z) - cone_y*sin(vehicle_pose.orientation.z);
+    global_cone.position.y = vehicle_pose.position.y + cone_x*sin(vehicle_pose.orientation.z) - cone_y*cos(vehicle_pose.orientation.z);
+
+    // RCLCPP_INFO(this->get_logger(), "vehicle position x = %f, y= %f, yaw = %f", vehicle_pose.position.x, vehicle_pose.position.y, vehicle_pose.orientation.z);
+    // RCLCPP_INFO(this->get_logger(), "traffic cone local x = %f, y =%f", cone_x, cone_y);
+    // RCLCPP_INFO(this->get_logger(), "traffic cone global x = %f, y =%f", global_cone.position.x, global_cone.position.y);
     return global_cone;
   }
 
