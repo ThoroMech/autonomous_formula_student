@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             "cone_graph = graphing.cone_graph:main",
-            "map_graph = graphing.map_graph:main"
+            "map_graph = graphing.map_graph:main",
+            "point_graph = graphing.point_graph:main"
         ],
     },
 )

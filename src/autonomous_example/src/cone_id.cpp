@@ -68,7 +68,7 @@ private:
 
     // Create a pose array message to store all the cones' locations.
     geometry_msgs::msg::PoseArray cones_locations;
-    cones_locations.header.stamp = this->now();
+    cones_locations.header.stamp = msg->header.stamp;
     cones_locations.header.frame_id = "map";
 
     // find the average location of each cone.

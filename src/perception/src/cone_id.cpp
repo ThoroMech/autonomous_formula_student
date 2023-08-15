@@ -2,13 +2,16 @@
 
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/float64.hpp"
 #include "sensor_msgs/point_cloud2_iterator.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
 #include "geometry_msgs/msg/vector3.hpp"
+#include "geometry_msgs/msg/point.hpp"
 #include "shape_msgs/msg/plane.hpp"
 
 #include "math.h"
 #include <random>
+#include <chrono>
 
 /* This node is set up to subscribe to the Lidar2 topic.
 I have adjusted the settings of Lidar2 to match the valodyne puck vlp-16
@@ -37,19 +40,22 @@ public:
   LidarSubscriber() : Node("lidar_subscriber"), 
                       lower_limit_(0.02),
                       upper_limit_(1.0),
-                      cluster_threshold_(0.2), //20cm was found to be best to avoid cone duplication
+                      cluster_threshold_(0.45), //20cm was found to be best to avoid cone duplication
                       cluster_proximity_ (0.5),
-                      cluster_distance_ (0.5)
+                      cluster_distance_ (0.5),
+                      cum_error_limit_(5)
   {
     subscription_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
       "/lidar/Lidar2", 10, std::bind(&LidarSubscriber::topic_callback, this, std::placeholders::_1));
     cone_location_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>("cone_location", 10);
+    testing_pub = this->create_publisher<geometry_msgs::msg::PoseArray>("points", 10);
 
     RCLCPP_INFO(this->get_logger(), "Perception Software - Cone Identification Initialised");
   }
 
 private:
-  float lower_limit_, upper_limit_, cluster_threshold_, cluster_proximity_, cluster_distance_;
+  float lower_limit_, upper_limit_, cluster_threshold_, cluster_proximity_, cluster_distance_, cum_error_limit_;
+  float end_time, start_time;
 
   void topic_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
   {
@@ -69,13 +75,14 @@ private:
     std::vector<std::vector<std::tuple<float, float, float>>> cones = filter_clusters(clusters);
 
     //average the points in clusters to determine cone location and write as PoseArray for publishing
-    geometry_msgs::msg::PoseArray cones_locations = average_cone_location(cones);
+    rclcpp::Time time_stamp = msg->header.stamp;
+    geometry_msgs::msg::PoseArray cones_locations = average_cone_location(cones, time_stamp);
 
     // Publish cone locations
     if (!cones_locations.poses.empty()) {
       cone_location_pub_->publish(cones_locations);
     }
-    
+
   }
   
   std::vector<std::vector<std::tuple<float, float, float>>> filter_clusters(
@@ -128,11 +135,11 @@ private:
     return cones;
   }
 
-  geometry_msgs::msg::PoseArray average_cone_location(const std::vector<std::vector<std::tuple<float, float, float>>>& cones)
+  geometry_msgs::msg::PoseArray average_cone_location(const std::vector<std::vector<std::tuple<float, float, float>>>& cones, rclcpp::Time time_stamp)
   {
     // Create a pose array message to store all the cones' locations.
     geometry_msgs::msg::PoseArray cones_locations;
-    cones_locations.header.stamp = this->now();
+    cones_locations.header.stamp = time_stamp;
     cones_locations.header.frame_id = "map";
 
     // find the average location of each cone.
@@ -182,13 +189,28 @@ private:
   std::vector<std::tuple<float, float, float>> filter_ground_air_points(const std::vector<std::tuple<float, float, float>>& points,
                                                                         shape_msgs::msg::Plane ground_plane)
   {
+    geometry_msgs::msg::PoseArray point_graphing;
+    point_graphing.poses.clear();
+
     std::vector<std::tuple<float, float, float>> candidate_points;
-    for (auto& point : points) {
+    for (auto& point : points) {        
+        // Create a Pose instance and set its position
+        geometry_msgs::msg::Pose pose;
+        pose.position.x = std::get<0>(point);
+        pose.position.y = std::get<1>(point);
+        pose.position.z = std::get<2>(point);
+        pose.orientation.z = 0;
+
       float distance = distance_to_plane(point, ground_plane);
       if (distance > this->lower_limit_ && distance < this->upper_limit_){
         candidate_points.emplace_back(point);
+        pose.orientation.z = 1;       
       }
+      point_graphing.poses.push_back(pose);
     }
+    //publish the points
+    testing_pub->publish(point_graphing);
+
     return candidate_points;
   }
 
@@ -211,8 +233,13 @@ private:
       //Calculate error of sample points to ground plane
       double error = error_calc(sample_points, ground_plane);
       
+      //if error is under cum_error_limit accept ground plane
+      if (error < cum_error_limit_){
+        best_ground_plane = ground_plane;
+        break; //exit for loop
+      }
       //If error is smallest for iterations save error and ground plane
-      if (best_error == 0 || error < best_error){
+      else if (best_error == 0 || error < best_error){
         best_error = error;
         best_ground_plane = ground_plane;
       } 
@@ -307,6 +334,7 @@ private:
     // Create a vector of tuples to store (x, y, z) coordinates and distance.
     std::vector<std::tuple<float, float, float>> points;
 
+
     for (; iter_x != iter_x.end(); ++iter_x, ++iter_y, ++iter_z) {
       const float x = *iter_x;
       const float y = *iter_y;
@@ -321,6 +349,7 @@ private:
 
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subscription_;
   rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr cone_location_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr testing_pub;
 };
 
 int main(int argc, char **argv)
